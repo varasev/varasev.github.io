@@ -1,0 +1,37 @@
+{
+  "name": "poa-dapps-validators",
+  "version": "0.2.0",
+  "private": true,
+  "homepage": "https://varasev.github.io/",
+  "dependencies": {
+    "clipboard": "^1.7.1",
+    "gh-pages": "^1.1.0",
+    "keythereum": "^1.0.2",
+    "moment": "^2.19.3",
+    "node-sass-chokidar": "0.0.3",
+    "nodemon": "^1.14.11",
+    "npm-run-all": "^4.1.2",
+    "password-generator": "^2.2.0",
+    "react": "^16.2.0",
+    "react-dom": "^16.2.0",
+    "react-places-autocomplete": "^5.4.3",
+    "react-router": "^4.2.0",
+    "react-router-dom": "^4.2.2",
+    "react-scripts": "1.0.17",
+    "react-select": "^1.2.1",
+    "sweetalert": "^2.0.8",
+    "web3": "^1.0.0-beta.26"
+  },
+  "scripts": {
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -b master -d build -o origin",
+    "build-css": "node-sass-chokidar src/stylesheets/application.scss -o src/stylesheets --output-style=compressed",
+    "watch-css": "nodemon -e scss -x \"npm run build-css\"",
+    "start-js": "react-scripts start",
+    "start": "npm-run-all -p watch-css start-js",
+    "build-js": "react-scripts build",
+    "build": "npm-run-all build-css build-js",
+    "test": "react-scripts test --env=jsdom",
+    "eject": "react-scripts eject"
+  }
+}
