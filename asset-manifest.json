@@ -1,15 +1,11 @@
 {
-  "main.css": "static/css/main.8cb9ba7d.css",
-  "main.css.map": "static/css/main.8cb9ba7d.css.map",
-  "main.js": "static/js/main.54cb8bbd.js",
-  "main.js.map": "static/js/main.54cb8bbd.js.map",
-  "static\\media\\bg_header.png": "static/media/bg_header.55fb6ae4.png",
-  "static\\media\\loading.png": "static/media/loading.938a017b.png",
-  "static\\media\\loading@2x.png": "static/media/loading@2x.48b1e766.png",
-  "static\\media\\logo_sokol.png": "static/media/logo_sokol.c1291dc7.png",
-  "static\\media\\logo_sokol@2x.png": "static/media/logo_sokol@2x.0aafb9fc.png",
-  "static\\media\\logo_validators_dapp.png": "static/media/logo_validators_dapp.a33a8dba.png",
-  "static\\media\\logo_validators_dapp@2x.png": "static/media/logo_validators_dapp@2x.3120fe2e.png",
-  "static\\media\\logo_validators_dapp_footer.png": "static/media/logo_validators_dapp_footer.ccefbdc6.png",
-  "static\\media\\logo_validators_dapp_footer@2x.png": "static/media/logo_validators_dapp_footer@2x.6d860513.png"
+  "main.css": "static/css/main.34735dbc.css",
+  "main.css.map": "static/css/main.34735dbc.css.map",
+  "main.js": "static/js/main.e5a68b41.js",
+  "main.js.map": "static/js/main.e5a68b41.js.map",
+  "static/media/loading.png": "static/media/loading.938a017b.png",
+  "static/media/loading@2x.png": "static/media/loading@2x.48b1e766.png",
+  "static/media/logo_sokol.png": "static/media/logo_sokol.c1291dc7.png",
+  "static/media/logo_sokol@2x.png": "static/media/logo_sokol@2x.0aafb9fc.png",
+  "static/media/logos@2x.png": "static/media/logos@2x.a9404d31.png"
 }
