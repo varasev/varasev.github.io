@@ -1,10 +1,9 @@
-import Web3 from 'web3'
-const POA_CORE = { RPC_URL: 'https://core.poa.network', netIdName: 'CORE', netId: '99' }
-const POA_SOKOL = { RPC_URL: 'https://sokol.poa.network', netIdName: 'SOKOL', netId: '77' }
+import { messages } from "./messages";
+
 let getWeb3 = () => {
-  return new Promise(function (resolve, reject) {
+  return new Promise((resolve, reject) => {
     // Wait for loading completion to avoid race conditions with web3 injection timing.
-    window.addEventListener('load', function () {
+    window.addEventListener('load', () => {
       var results
       var web3 = window.web3
 
@@ -27,13 +26,14 @@ let getWeb3 = () => {
               break;
             default:
               netIdName = 'ERROR'
-              errorMsg = `You aren't connected to POA Network. 
-                  Please, switch to POA network and refresh the page. 
-                  Check POA Network <a href='https://github.com/poanetwork/wiki' target='blank'>wiki</a> for more info.`
+              errorMsg = messages.WRONG_NETWORK_MSG
               console.log('This is an unknown network.', netId)
           }
-          document.title = `${netIdName} - POA validators dApp`
+          document.title = `${netIdName} - POA Network Governance DApp`
           var defaultAccount = web3.eth.defaultAccount || null;
+          if(defaultAccount === null){
+            reject({message: messages.NO_METAMASK_MSG})
+          }
           if(errorMsg !== null){
             reject({message: errorMsg})
           }
@@ -50,47 +50,12 @@ let getWeb3 = () => {
         console.log('Injected web3 detected.');
 
       } else {
-        // Fallback to localhost if no web3 injection.
-        
-        const network = window.location.host.indexOf('sokol') !== -1 ? POA_SOKOL : POA_CORE
-
-        document.title = `${network.netIdName} - POA validators dApp`
-        const provider = new Web3.providers.HttpProvider(network.RPC_URL)
-        let web3 = new Web3(provider)
-
-        results = {
-          web3Instance: web3,
-          netIdName: network.netIdName,
-          netId: network.netId,
-          injectedWeb3: false,
-          defaultAccount: null
-        }
-        resolve(results)
-        console.log('No web3 instance injected, using Local web3.');
-        console.error('Metamask not found'); 
+        reject({message: messages.NO_METAMASK_MSG})
+        console.error('Metamask not found');
       }
     })
   })
 }
 
-const setWeb3 = (netId) => {
-  let network;
-  switch(netId){
-    case '77':
-      network = POA_SOKOL;
-      break;
-    case '99':
-      network = POA_CORE;
-      break;
-    default:
-      network = POA_CORE
-      break; 
-  }
-  const provider = new Web3.providers.HttpProvider(network.RPC_URL)
-  return new Web3(provider)
-}
-
 export default getWeb3
-
-export {setWeb3};
 

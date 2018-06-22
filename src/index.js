@@ -1,240 +1,97 @@
-import React, {Component} from 'react';
+import React, { Component } from 'react';
 import ReactDOM from 'react-dom';
+import { Router, Route } from 'react-router-dom';
 import App from './App';
 import registerServiceWorker from './registerServiceWorker';
-import KeysManager from './contracts/KeysManager.contract'
-import Metadata from './contracts/Metadata.contract'
-import getWeb3, {setWeb3} from './getWeb3'
-import helpers from './helpers'
-import {
-  Router,
-  Route,
-  NavLink
-} from 'react-router-dom'
+import { Provider } from 'mobx-react';
+import { RouterStore, syncHistoryWithStore } from 'mobx-react-router';
+import commonStore from './stores/CommonStore';
+import validatorStore from './stores/ValidatorStore';
+import ballotStore from './stores/BallotStore';
+import ballotsStore from './stores/BallotsStore';
+import contractsStore from './stores/ContractsStore';
+import { getContractsAddresses } from './contracts/addresses';
+import swal from 'sweetalert2';
+import getWeb3 from './getWeb3';
+import "babel-polyfill";
 import createBrowserHistory from 'history/createBrowserHistory'
-import Loading from './Loading'
-import Footer from './Footer';
-import AllValidators from './AllValidators'
-import Select from 'react-select'
-import "react-select/dist/react-select.css";
-import networkAddresses from './contracts/addresses';
 
-let errorMsgNoMetamaskAccount = `Your MetaMask is locked.
-Please choose your voting key in MetaMask and reload the page.
-Check POA Network <a href='https://github.com/poanetwork/wiki' target='blank'>wiki</a> for more info.`;
+const browserHistory = createBrowserHistory();
+const routingStore = new RouterStore();
+const stores = { commonStore, contractsStore, ballotStore, ballotsStore, validatorStore, routing: routingStore };
+const history = syncHistoryWithStore(browserHistory, routingStore);
 
-const history = createBrowserHistory()
-
-let Header = ({netId, onChange, injectedWeb3}) => {
-  let select;
-  let headerClassName = netId === '77' ? 'sokol' : '';
-  const logoClassName = netId === '77' ? 'header-logo-sokol' : 'header-logo';
-  if(!injectedWeb3) {
-    select = <Select id="netId"
-        value={netId}
-        onChange={onChange}
-        style={{
-          width: '150px',
-        }}
-        wrapperStyle={{
-          width: '150px',
-        }}
-        clearable={false}
-        options={[
-          { value: '77', label: 'Network: Sokol' },
-          { value: '99', label: 'Network: Core' },
-        ]} />
-  }
-  return (
-    <header id="header" className={`header ${headerClassName}`}>
-      <div className="container">
-          <a href="/poa-dapps-validators" className={logoClassName}></a>
-          {select}
-      </div>
-    </header>
-  )
+function generateElement(msg){
+  let errorNode = document.createElement("div");
+  errorNode.innerHTML = `${msg}`;
+  return errorNode;
 }
 class AppMainRouter extends Component {
-  constructor(props){
+
+  constructor(props) {
     super(props);
-    this.rootPath = '/poa-dapps-validators'
-    history.listen(this.onRouteChange.bind(this));
-    this.onSetRender = this.onSetRender.bind(this);
-    this.onPendingChangesRender = this.onPendingChangesRender.bind(this);
-    this.onAllValidatorsRender = this.onAllValidatorsRender.bind(this)
-    this.onConfirmPendingChange = this.onConfirmPendingChange.bind(this);
-    this.onFinalize = this.onFinalize.bind(this);
-    this.onSearch = this.onSearch.bind(this);
-    this.onNetworkChange = this.onNetworkChange.bind(this);
-    this.state = {
-      showSearch: true,
-      web3loaded: false,
-      keysManager :null,
-      metadataContract: null,
-      poaConsensus: null,
-      votingKey :null,
-      loading: true,
-      searchTerm: '',
-      injectedWeb3: true,
-      netId: '',
-      error: false
-    }
+    commonStore.showLoading();
+
     getWeb3().then(async (web3Config) => {
-      return networkAddresses(web3Config)
-    }).then(async (config) => {
-      const {web3Config, addresses} = config;
-      const keysManager = new KeysManager()
-      await keysManager.init({
-        web3: web3Config.web3Instance,
-        netId: web3Config.netId,
-        addresses,
-      })
-      const metadataContract = new Metadata()
-      await metadataContract.init({
-        web3: web3Config.web3Instance,
-        netId: web3Config.netId,
-        addresses,
-      })
-      this.setState({
-        votingKey: web3Config.defaultAccount,
-        keysManager,
-        metadataContract,
-        loading: false,
-        injectedWeb3: web3Config.injectedWeb3,
-        netId: web3Config.netId,
-      })
+      let getSokolContractsAddresses = getContractsAddresses('sokol');
+      let getCoreContractsAddresses = getContractsAddresses('core');
+      await Promise.all([getSokolContractsAddresses, getCoreContractsAddresses]);
+
+      contractsStore.setWeb3Instance(web3Config);
+
+      let setPoaConsensus = contractsStore.setPoaConsensus(web3Config);
+      let setBallotsStorage = contractsStore.setBallotsStorage(web3Config);
+      let setProxyStorage = contractsStore.setProxyStorage(web3Config);
+      let setVotingToChangeKeys = contractsStore.setVotingToChangeKeys(web3Config);
+      let setVotingToChangeMinThreshold = contractsStore.setVotingToChangeMinThreshold(web3Config);
+      let setVotingToChangeProxy = contractsStore.setVotingToChangeProxy(web3Config);
+      let setValidatorMetadata = contractsStore.setValidatorMetadata(web3Config);
+
+      await Promise.all([
+        setPoaConsensus,
+        setBallotsStorage,
+        setProxyStorage,
+        setVotingToChangeKeys,
+        setVotingToChangeMinThreshold,
+        setVotingToChangeProxy,
+        setValidatorMetadata
+      ]);
+
+      await contractsStore.setMiningKey(web3Config);
+      await contractsStore.setVotingKey(web3Config);
+
+      await contractsStore.getAllValidatorMetadata();
+      await contractsStore.getAllBallots();
+
+      contractsStore.getKeysBallotThreshold();
+      contractsStore.getMinThresholdBallotThreshold();
+      contractsStore.getProxyBallotThreshold();
+      contractsStore.getBallotsLimits();
+      console.log("votingKey", contractsStore.votingKey);
+      console.log("miningKey", contractsStore.miningKey);
+      commonStore.hideLoading();
     }).catch((error) => {
       console.error(error.message);
-      this.setState({loading: false, error: true});
-      helpers.generateAlert("error", "Error!", error.message);
-    })
-  }
-  onRouteChange(){
-    const setMetadata = this.rootPath + "/set";
-    if(history.location.pathname === setMetadata){
-      this.setState({showSearch: false})
-      if(this.state.injectedWeb3 === false){
-        helpers.generateAlert("warning", "Warning!", 'Metamask was not found');
-      }
-    } else {
-      this.setState({showSearch: true})
-    }
-  }
-  checkForVotingKey(cb){
-    if(this.state.votingKey && !this.state.loading){
-      return cb();
-    } else {
-      helpers.generateAlert("warning", "Warning!", errorMsgNoMetamaskAccount);
-      return ''
-    }
-  }
-  onSetRender() {
-    return this.checkForVotingKey(() => {
-      return <App web3Config={this.state}/>
-    })
-  }
-  async _onBtnClick({event, methodToCall, successMsg}){
-    event.preventDefault();
-    this.checkForVotingKey(async () => {
-      this.setState({loading: true})
-      const miningKey = event.currentTarget.getAttribute('miningkey');
-      try{
-        let result = await this.state.metadataContract[methodToCall]({
-          miningKeyToConfirm: miningKey,
-          senderVotingKey: this.state.votingKey
-        });
-        console.log(result);
-        this.setState({loading: false})
-        helpers.generateAlert("success", "Congratulations!", successMsg);
-      } catch(error) {
-        this.setState({loading: false})
-        console.error(error.message);
-        helpers.generateAlert("error", "Error!", error.message);
-      }
-    })
-  }
-  async onConfirmPendingChange(event) {
-    await this._onBtnClick({
-      event,
-      methodToCall: 'confirmPendingChange',
-      successMsg: 'You have successfully confirmed the change!'
+      commonStore.hideLoading();
+      swal({
+        title: "Error",
+        html: generateElement(error.message),
+        icon: "error",
+        type: "error"
+      });
     });
   }
-  async onFinalize(event){
-    await this._onBtnClick({
-      event,
-      methodToCall: 'finalize',
-      successMsg: 'You have successfully finalized the change!'
-    });
-  }
-  onPendingChangesRender() {
-    return this.state.loading || this.state.error? '' : <AllValidators
-      ref="AllValidatorsRef"
-      methodToCall="getAllPendingChanges"
-      searchTerm={this.state.searchTerm}
-      web3Config={this.state}>
-          <button onClick={this.onFinalize} className="create-keys-button finalize">Finalize</button>
-          <button onClick={this.onConfirmPendingChange} className="create-keys-button">Confirm</button>
-      </AllValidators>;
-  }
-  onAllValidatorsRender() {
-    return this.state.loading || this.state.error ? '' : <AllValidators
-      searchTerm={this.state.searchTerm}
-      methodToCall="getAllValidatorsData"
-      web3Config={this.state}
-      />
-  }
-  onSearch(term){
-    this.setState({searchTerm: term.target.value.toLowerCase()})
-  }
-  async onNetworkChange(e){
-    const netId = e.value;
-    const web3 = setWeb3(netId);
-    networkAddresses({netId}).then(async (config) => {
-      const {addresses} = config;
-      const keysManager = new KeysManager();
-      await keysManager.init({
-        web3,
-        netId,
-        addresses
-      });
-      const metadataContract = new Metadata()
-      await metadataContract.init({
-        web3,
-        netId,
-        addresses
-      });
-      this.setState({netId: e.value, keysManager, metadataContract})
-    })
-  }
+
   render(){
-    console.log('v2.09')
-    const search = this.state.showSearch ? <input type="search" className="search-input" onChange={this.onSearch}/> : ''
-    const loading = this.state.loading ? <Loading netId={this.state.netId} /> : ''
     return (
-      <Router history={history}>
-        <section className="content">
-          <Header netId={this.state.netId} onChange={this.onNetworkChange} injectedWeb3={this.state.injectedWeb3} />
-        {loading}
-        <div className="nav-container">
-          <div className="container">
-            <div className="nav">
-              <NavLink className="nav-i" exact activeClassName="nav-i_active" to={`${this.rootPath}/`}>All</NavLink>
-              <NavLink className="nav-i" activeClassName="nav-i_active" to={`${this.rootPath}/set`}>Set metadata</NavLink>
-              <NavLink className="nav-i" activeClassName="nav-i_active" to={`${this.rootPath}/pending-changes`}>Pending changes</NavLink>
-            </div>
-            {search}
-          </div>
-        </div>
-        <Route exact path={`${this.rootPath}/`} render={this.onAllValidatorsRender} web3Config={this.state}/>
-        <Route exact path="/" render={this.onAllValidatorsRender} web3Config={this.state}/>
-        <Route path={`${this.rootPath}/set`} render={this.onSetRender} />
-        <Route path={`${this.rootPath}/pending-changes`} render={this.onPendingChangesRender} />
-        <Footer netId={this.state.netId} />
-        </section>
-      </Router>
+      <Provider { ...stores }>
+        <Router history={history}>
+          <Route component={App} />
+        </Router>
+      </Provider>
     )
   }
+
 }
 
 ReactDOM.render(<AppMainRouter />, document.getElementById('root'));
